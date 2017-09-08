@@ -28,4 +28,4 @@ cv::waitKey returns ASCII code of key pressed on the openCV window
 plot_func() repeat and print on screen until local_num >= capture_num (How did local_num go up??) or esc key
 If space is pressed, write current frame as file???
 
-Why cv::flip??
+Why cv::flip?? 
