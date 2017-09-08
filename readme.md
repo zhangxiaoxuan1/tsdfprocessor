@@ -1,5 +1,4 @@
-Instructions for building & running
-###################################
+# Instructions for building & running
 
 Modify lines 15 & 16 of ./src/CMakeLists.txt to point to the headers and lib files of your orbbbec astra driver installation.
 
