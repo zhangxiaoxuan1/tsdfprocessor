@@ -12,6 +12,8 @@ When running the program, pass the config file path as an argument.
 
 # Notes
 
+Run: g++ -std=c++11 snapshot_intel.cpp -lrealsense -lopencv_core -lopencv_highgui && ./a.out
+
 memcpy(dest,src,size) where count is the "sizeof" of the array. This is used for array operations for rgb, ir and depth.
 
 RGB has 3 channels each 1 byte, so depth*height*3; IR and Depth has 1 channel each 2 bytes, so depth*height*2
