@@ -1,0 +1,28 @@
+[settings]
+frame_number = 6000
+
+[depth]
+enable = true
+display = true
+export = false
+registered = false
+directory = "/home/sahar/Pictures/orbbec_snapshot_test/"
+export_prefix = "depth"
+snapshot_prefix = "depth_snap"
+
+[color]
+enable = true
+display = true
+export = false
+directory = "/home/sahar/Pictures/orbbec_snapshot_test/"
+export_prefix = "color"
+snapshot_prefix = "color_snap"
+
+[ir]
+enable = false
+display = true
+export = false
+directory = "/home/sahar/Pictures/orbbec_snapshot_test/"
+export_prefix = "ir"
+snapshot_prefix = "ir_snap"
+
