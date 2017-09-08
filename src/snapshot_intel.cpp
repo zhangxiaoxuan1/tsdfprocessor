@@ -34,7 +34,7 @@ std::vector< ir_array > ir_images;
 int height = 480;
 int width = 640;
 
-int frame_number = 0;
+int frame_number;
 int frames_written = 0;
 bool quit = false;
 
@@ -125,6 +125,42 @@ int main () try {
 	    printf("Using device 0, an %s\n", dev->get_name());
 	    printf("    Serial number: %s\n", dev->get_serial());
 	    printf("    Firmware version: %s\n", dev->get_firmware_version());
+
+	    // Configure all streams to run at 640*480 at 60 frames per second
+	    if(depth_enable){
+	        dev->enable_stream(rs::stream::depth, 640, 480, rs::format::z16, 60);
+	    }
+	    if(rgb_enable){
+	        dev->enable_stream(rs::stream::color, 640, 480, rs::format::rgb8, 60);
+	    }
+	    if(ir_enable){
+	        dev->enable_stream(rs::stream::infrared, 640, 480, rs::format::y8, 60);
+	    }
+	    if(!depth_enable && !rgb_enable && !ir_enable){
+	    	printf("No stream enabled, program exits automatically.\n");
+	    	return EXIT_SUCCESS;
+	    }
+	    dev->start();
+
+	    // Camera warmup - Dropped several first frames to let auto-exposure stabilize
+	    for(int i = 0; i < 30; i++){
+	       dev->wait_for_frames();
+	    }
+
+	    // Display in a GUI
+	    cv::namedWindow("Display Image");
+
+	    for(int i = 0; i < capture_num; i++){
+	       cv::Mat color(cv::Size(640, 480), CV_8UC3, (void*)dev->get_frame_data(rs::stream::color), cv::Mat::AUTO_STEP);
+	       cv::imshow("Display Image", color);
+	       int key = cv::waitKey(200);
+	       switch(key) {
+	       	case 27:
+	        	break;
+	       }
+	    }
+	    return EXIT_SUCCESS;
+
 } catch(const rs::error & e)
 {
     // Method calls against librealsense objects may throw exceptions of type rs::error
