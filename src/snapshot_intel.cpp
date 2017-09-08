@@ -105,13 +105,30 @@ bool load_config() {
 }
 
 
-int main (int argc, char* argv[]) {
+int main () try {
 	std::cerr << "Loading configuration file...";
 	    load_config();
-	    std::cerr << "done!" << std::endl;
+	    std::cerr << "done!\n" << std::endl;
 
 	    if(!depth_enable && !rgb_enable && !ir_enable) {
 	        std::cerr << "Error: No streams enabled" << std::endl;
 	        return EXIT_FAILURE;
 	    }
+
+	    // Create a context object. This object owns the handles to all connected realsense devices.
+	    rs::context ctx;
+	    printf("You have %d connected RealSense devices.\n", ctx.get_device_count());
+	    if(ctx.get_device_count() == 0) return EXIT_FAILURE;
+
+	    // Access the device
+	    rs::device * dev = ctx.get_device(0);
+	    printf("Using device 0, an %s\n", dev->get_name());
+	    printf("    Serial number: %s\n", dev->get_serial());
+	    printf("    Firmware version: %s\n", dev->get_firmware_version());
+} catch(const rs::error & e)
+{
+    // Method calls against librealsense objects may throw exceptions of type rs::error
+    printf("rs::error was thrown when calling %s(%s):\n", e.get_failed_function().c_str(), e.get_failed_args().c_str());
+    printf("    %s\n", e.what());
+    return EXIT_FAILURE;
 }
