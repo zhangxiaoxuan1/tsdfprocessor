@@ -1,28 +1,28 @@
 [settings]
-frame_number = 6000
+frame_number = 50
 
 [depth]
 enable = true
 display = true
-export = false
+export = true
 registered = false
-directory = "/home/isaac/Pictures/intel_snapshot_test/"
+directory = "/home/isaac/Pictures/intel_snapshot_test/depth/"
 export_prefix = "depth"
 snapshot_prefix = "depth_snap"
 
 [color]
 enable = true
 display = true
-export = false
-directory = "/home/isaac/Pictures/intel_snapshot_test/"
+export = true
+directory = "/home/isaac/Pictures/intel_snapshot_test/color/"
 export_prefix = "color"
 snapshot_prefix = "color_snap"
 
 [ir]
 enable = true
 display = true
-export = false
-directory = "/home/isaac/Pictures/intel_snapshot_test/"
+export = true
+directory = "/home/isaac/Pictures/intel_snapshot_test/ir/"
 export_prefix = "ir"
 snapshot_prefix = "ir_snap"
 
