@@ -20,23 +20,8 @@
 #include <mutex>
 #include "../include/tinytoml/toml.h"
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-
-typedef std::array<u16, 307200> depth_array;
-typedef std::array<u8, 921600> rgb_array;
-typedef std::array<u16, 307200> ir_array;
-
-std::vector< depth_array > depth_images;
-std::vector< rgb_array > rgb_images;
-std::vector< ir_array > ir_images;
-int height = 480;
-int width = 640;
-
-int frame_number;
 int frames_written = 0;
 std::string name_suffix = ".png";
-
 std::string config_file = "../config/config.toml";
 
 int capture_num;
@@ -46,6 +31,7 @@ bool depth_write;
 std::string depth_path;
 std::string depth_prefix;
 std::string depth_snap_prefix;
+bool depth_directory_created = false;
 
 bool rgb_enable;
 bool rgb_plot;
@@ -53,6 +39,7 @@ bool rgb_write;
 std::string rgb_path;
 std::string rgb_prefix;
 std::string rgb_snap_prefix;
+bool rgb_directory_created = false;
 
 bool ir_enable;
 bool ir_plot;
@@ -60,7 +47,7 @@ bool ir_write;
 std::string ir_path;
 std::string ir_prefix;
 std::string ir_snap_prefix;
-bool register_depth;
+bool ir_directory_created = false;
 
 bool load_config() {
     std::ifstream input(config_file);
@@ -97,8 +84,6 @@ bool load_config() {
     ir_path = v.get<std::string>("ir.directory");
     ir_prefix = v.get<std::string>("ir.export_prefix");
     ir_snap_prefix = v.get<std::string>("ir.snapshot_prefix");
-
-    register_depth = v.get<bool>("depth.registered");
 
     return true;
 }
@@ -149,17 +134,22 @@ int main () try {
 	    }
 
 	    // Create directories to write to
-	    //
 	    if(depth_write) {
 			system(("mkdir -p " + depth_path).c_str());
+			depth_directory_created = true;
 	    }
 	    if(rgb_write) {
 	    	system(("mkdir -p " + rgb_path).c_str());
+			rgb_directory_created = true;
 	    }
 	    if(ir_write) {
 	    	system(("mkdir -p " + ir_path).c_str());
+			ir_directory_created = true;
 	    }
 
+	    cv::Mat color;//(height, width, CV_8UC3);
+	    cv::Mat depth;//(height, width, CV_16UC1);
+	    cv::Mat ir;//(height, width, CV_16UC1);
 	    for(int i = 0; i < capture_num; i++){
 
 	       // Wait for frame to load
@@ -167,7 +157,7 @@ int main () try {
 	    	   dev->wait_for_frames();
 
 	       if(depth_enable){
-	    	   cv::Mat depth(cv::Size(640, 480), CV_16UC1, (void*)dev->get_frame_data(rs::stream::depth), cv::Mat::AUTO_STEP);
+	    	   depth = cv::Mat(cv::Size(640, 480), CV_16UC1, (void*)dev->get_frame_data(rs::stream::depth), cv::Mat::AUTO_STEP);
 	    	   if(depth_write) {
 	               std::stringstream ss;
 	               ss << depth_path << depth_prefix << std::setw(5) << std::setfill('0') << i << name_suffix;
@@ -180,7 +170,7 @@ int main () try {
 	    	   }
 	       }
 	       if(rgb_enable){
-	    	   cv::Mat color(cv::Size(640, 480), CV_8UC3, (void*)dev->get_frame_data(rs::stream::color), cv::Mat::AUTO_STEP);
+	    	   color = cv::Mat(cv::Size(640, 480), CV_8UC3, (void*)dev->get_frame_data(rs::stream::color), cv::Mat::AUTO_STEP);
 	    	   if(rgb_write) {
 	               std::stringstream ss;
 	               ss << rgb_path << rgb_prefix << std::setw(5) << std::setfill('0') << i << name_suffix;
@@ -191,7 +181,7 @@ int main () try {
 	    	   }
 	       }
 	       if(ir_enable){
-	    	   cv::Mat ir(cv::Size(640, 480), CV_8UC1, (void*)dev->get_frame_data(rs::stream::infrared), cv::Mat::AUTO_STEP);
+	    	   ir = cv::Mat(cv::Size(640, 480), CV_8UC1, (void*)dev->get_frame_data(rs::stream::infrared), cv::Mat::AUTO_STEP);
 	    	   if(ir_write) {
 	               std::stringstream ss;
 	               ss << ir_path << ir_prefix << std::setw(5) << std::setfill('0') << i << name_suffix;
@@ -204,8 +194,38 @@ int main () try {
 	       int key = cv::waitKey(200);
 	       switch(key) {
 	       	case 27:
-	       		printf("Quitting program\n");
+	       		printf("Escape key pressed. Exiting program...\n");
 	    	    return EXIT_SUCCESS;
+	       	case 32:
+                if(depth_enable) {
+                	if (!depth_directory_created){
+            			system(("mkdir -p " + depth_path).c_str());
+            			depth_directory_created = true;
+                	}
+                    std::stringstream ss;
+                    ss << depth_path << depth_snap_prefix << std::setw(5) << std::setfill('0') << frames_written << name_suffix;
+ 	                cv::imwrite(ss.str(), depth);
+                }
+                if(rgb_enable) {
+                	if (!rgb_directory_created){
+                    	system(("mkdir -p " + rgb_path).c_str());
+                    	rgb_directory_created = true;
+                    }
+                    std::stringstream ss;
+                    ss << rgb_path << rgb_snap_prefix << std::setw(5) << std::setfill('0') << frames_written << name_suffix;
+                    cv::imwrite(ss.str(), color);
+                }
+                if(ir_enable) {
+                	if (!ir_directory_created){
+                    	system(("mkdir -p " + ir_path).c_str());
+                    	ir_directory_created = true;
+                    }
+                    std::stringstream ss;
+                    ss << ir_path << ir_snap_prefix << std::setw(5) << std::setfill('0') << frames_written << name_suffix;
+                    cv::imwrite(ss.str(), ir);
+                }
+                frames_written++;
+	       		printf("Snapshot is taken.\n");
 	       }
 	    }
 	    return EXIT_SUCCESS;
