@@ -19,7 +19,7 @@ export_prefix = "color"
 snapshot_prefix = "color_snap"
 
 [ir]
-enable = false
+enable = true
 display = true
 export = false
 directory = "/home/isaac/Pictures/intel_snapshot_test/"
