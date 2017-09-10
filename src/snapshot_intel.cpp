@@ -157,7 +157,10 @@ int main () try {
 	    // Create a context object. This object owns the handles to all connected realsense devices.
 	    rs::context ctx;
 	    printf("You have %d connected RealSense devices.\n", ctx.get_device_count());
-	    if(ctx.get_device_count() == 0) return EXIT_FAILURE;
+	    if(ctx.get_device_count() == 0){
+	    	printf("You have 0 device connected. Please check connection.\n");
+	    	return EXIT_FAILURE;
+	    }
 
 	    // Access the device
 	    rs::device * dev = ctx.get_device(0);
@@ -187,7 +190,9 @@ int main () try {
 	    }
 
 	    for(int i = 0; i < capture_num; i++){
-	       if( dev->is_streaming() )
+
+	       // Wait for frame to load
+	       if(dev->is_streaming())
 	    	   dev->wait_for_frames();
 
 	       if(depth_enable && depth_plot){
