@@ -6,10 +6,10 @@ if (DEFINED CMAKE_BUILD_TYPE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES})
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/poco")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/librealsense")
 
 # ---[ Solution name
-project(astra_grabber C CXX)
+project(realsense_grabber C CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 
