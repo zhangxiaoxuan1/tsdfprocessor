@@ -42,201 +42,215 @@ std::string ir_snap_prefix;
 bool ir_directory_created = false;
 
 bool load_config() {
-    std::ifstream input(config_file);
+	std::ifstream input(config_file);
 
-    toml::ParseResult pr = toml::parse(input);
+	toml::ParseResult pr = toml::parse(input);
 
-    if (!pr.valid()) {
-        std::cerr << "Could not load config file: " << pr.errorReason << std::endl;
-        return false;
-    }
+	if (!pr.valid()) {
+		std::cerr << "Could not load config file: " << pr.errorReason
+				<< std::endl;
+		return false;
+	}
 
-    // pr.value is the parsed value.
-    const toml::Value& v = pr.value;
+	// pr.value is the parsed value.
+	const toml::Value& v = pr.value;
 
-    capture_num = v.get<int>("settings.frame_number");
+	capture_num = v.get<int>("settings.frame_number");
 
-    depth_enable = v.get<bool>("depth.enable");
-    depth_plot = v.get<bool>("depth.display");
-    depth_write = v.get<bool>("depth.export");
-    depth_path = v.get<std::string>("depth.directory");
-    depth_prefix = v.get<std::string>("depth.export_prefix");
-    depth_snap_prefix = v.get<std::string>("depth.snapshot_prefix");
+	depth_enable = v.get<bool>("depth.enable");
+	depth_plot = v.get<bool>("depth.display");
+	depth_write = v.get<bool>("depth.export");
+	depth_path = v.get<std::string>("depth.directory");
+	depth_prefix = v.get<std::string>("depth.export_prefix");
+	depth_snap_prefix = v.get<std::string>("depth.snapshot_prefix");
 
-    rgb_enable = v.get<bool>("color.enable");
-    rgb_plot = v.get<bool>("color.display");
-    rgb_write = v.get<bool>("color.export");
-    rgb_path = v.get<std::string>("color.directory");
-    rgb_prefix = v.get<std::string>("color.export_prefix");
-    rgb_snap_prefix = v.get<std::string>("color.snapshot_prefix");
+	rgb_enable = v.get<bool>("color.enable");
+	rgb_plot = v.get<bool>("color.display");
+	rgb_write = v.get<bool>("color.export");
+	rgb_path = v.get<std::string>("color.directory");
+	rgb_prefix = v.get<std::string>("color.export_prefix");
+	rgb_snap_prefix = v.get<std::string>("color.snapshot_prefix");
 
-    ir_enable = v.get<bool>("ir.enable");
-    ir_plot = v.get<bool>("ir.display");
-    ir_write = v.get<bool>("ir.export");
-    ir_path = v.get<std::string>("ir.directory");
-    ir_prefix = v.get<std::string>("ir.export_prefix");
-    ir_snap_prefix = v.get<std::string>("ir.snapshot_prefix");
+	ir_enable = v.get<bool>("ir.enable");
+	ir_plot = v.get<bool>("ir.display");
+	ir_write = v.get<bool>("ir.export");
+	ir_path = v.get<std::string>("ir.directory");
+	ir_prefix = v.get<std::string>("ir.export_prefix");
+	ir_snap_prefix = v.get<std::string>("ir.snapshot_prefix");
 
-    return true;
+	return true;
 }
 
-int main (int argc, char* argv[]) try {
+int main(int argc, char* argv[])
+try {
 
-    if ( argc != 2 ) {// argc should be 2 for correct execution
-    // We print argv[0] assuming it is the program name
-        std::cerr << "usage: " << argv[0] << " <configuration-file>" << std::endl;
-        return -1;
-    }
-    else {
-        config_file = std::string(argv[1]);
-    }
+	if (argc != 2) { // argc should be 2 for correct execution
+		// We print argv[0] assuming it is the program name
+		std::cerr << "usage: " << argv[0] << " <configuration-file>"
+				<< std::endl;
+		return -1;
+	} else {
+		config_file = std::string(argv[1]);
+	}
+	std::cerr << "Loading configuration file...";
+	load_config();
+	std::cerr << "done!\n" << std::endl;
 
+	if (!depth_enable && !rgb_enable && !ir_enable) {
+		std::cerr << "Error: No streams enabled" << std::endl;
+		return EXIT_FAILURE;
+	}
 
-		std::cerr << "Loading configuration file...";
-	    load_config();
-	    std::cerr << "done!\n" << std::endl;
+	// Create a context object. This object owns the handles to all connected realsense devices.
+	rs::context ctx;
+	printf("You have %d connected RealSense devices.\n",
+			ctx.get_device_count());
+	if (ctx.get_device_count() == 0) {
+		printf("You have 0 device connected. Please check connection.\n");
+		return EXIT_FAILURE;
+	}
 
-	    if(!depth_enable && !rgb_enable && !ir_enable) {
-	        std::cerr << "Error: No streams enabled" << std::endl;
-	        return EXIT_FAILURE;
-	    }
+	// Access the device
+	rs::device * dev = ctx.get_device(0);
+	printf("Using device 0, an %s\n", dev->get_name());
+	printf("    Serial number: %s\n", dev->get_serial());
+	printf("    Firmware version: %s\n", dev->get_firmware_version());
 
-	    // Create a context object. This object owns the handles to all connected realsense devices.
-	    rs::context ctx;
-	    printf("You have %d connected RealSense devices.\n", ctx.get_device_count());
-	    if(ctx.get_device_count() == 0){
-	    	printf("You have 0 device connected. Please check connection.\n");
-	    	return EXIT_FAILURE;
-	    }
+	// Configure all streams to run at 640*480 at 30 frames per second
+	if (depth_enable) {
+		dev->enable_stream(rs::stream::depth, 640, 480, rs::format::z16, 30);
+	}
+	if (rgb_enable) {
+		dev->enable_stream(rs::stream::color, 640, 480, rs::format::rgb8, 30);
+	}
+	if (ir_enable) {
+		dev->enable_stream(rs::stream::infrared, 640, 480, rs::format::y8, 30);
+	}
+	if (!depth_enable && !rgb_enable && !ir_enable) {
+		printf("No stream enabled, program exits automatically.\n");
+		return EXIT_SUCCESS;
+	}
+	dev->start();
 
-	    // Access the device
-	    rs::device * dev = ctx.get_device(0);
-	    printf("Using device 0, an %s\n", dev->get_name());
-	    printf("    Serial number: %s\n", dev->get_serial());
-	    printf("    Firmware version: %s\n", dev->get_firmware_version());
+	// Camera warmup - Dropped several first frames to let auto-exposure stabilize
+	for (int i = 0; i < 30; i++) {
+		dev->wait_for_frames();
+	}
 
-	    // Configure all streams to run at 640*480 at 30 frames per second
-	    if(depth_enable){
-	        dev->enable_stream(rs::stream::depth, 640, 480, rs::format::z16, 30);
-	    }
-	    if(rgb_enable){
-	        dev->enable_stream(rs::stream::color, 640, 480, rs::format::rgb8, 30);
-	    }
-	    if(ir_enable){
-	        dev->enable_stream(rs::stream::infrared, 640, 480, rs::format::y8, 30);
-	    }
-	    if(!depth_enable && !rgb_enable && !ir_enable){
-	    	printf("No stream enabled, program exits automatically.\n");
-	    	return EXIT_SUCCESS;
-	    }
-	    dev->start();
+	// Create directories to write to
+	if (depth_write) {
+		system(("mkdir -p " + depth_path).c_str());
+		depth_directory_created = true;
+	}
+	if (rgb_write) {
+		system(("mkdir -p " + rgb_path).c_str());
+		rgb_directory_created = true;
+	}
+	if (ir_write) {
+		system(("mkdir -p " + ir_path).c_str());
+		ir_directory_created = true;
+	}
 
-	    // Camera warmup - Dropped several first frames to let auto-exposure stabilize
-	    for(int i = 0; i < 30; i++){
-	       dev->wait_for_frames();
-	    }
+	cv::Mat color;    //(height, width, CV_8UC3);
+	cv::Mat depth;    //(height, width, CV_16UC1);
+	cv::Mat ir;    //(height, width, CV_16UC1);
+	for (int i = 0; i < capture_num; i++) {
 
-	    // Create directories to write to
-	    if(depth_write) {
-			system(("mkdir -p " + depth_path).c_str());
-			depth_directory_created = true;
-	    }
-	    if(rgb_write) {
-	    	system(("mkdir -p " + rgb_path).c_str());
-			rgb_directory_created = true;
-	    }
-	    if(ir_write) {
-	    	system(("mkdir -p " + ir_path).c_str());
-			ir_directory_created = true;
-	    }
+		// Wait for frame to load
+		if (dev->is_streaming())
+			dev->wait_for_frames();
 
-	    cv::Mat color;//(height, width, CV_8UC3);
-	    cv::Mat depth;//(height, width, CV_16UC1);
-	    cv::Mat ir;//(height, width, CV_16UC1);
-	    for(int i = 0; i < capture_num; i++){
+		if (depth_enable) {
+			depth = cv::Mat(cv::Size(640, 480), CV_16UC1,
+					(void*) dev->get_frame_data(rs::stream::depth),
+					cv::Mat::AUTO_STEP);
+			if (depth_write) {
+				std::stringstream ss;
+				ss << depth_path << depth_prefix << std::setw(5)
+						<< std::setfill('0') << i << name_suffix;
+				cv::imwrite(ss.str(), depth);
+			}
+			if (depth_plot) {
+				// Convert 16bit to 8 bit
+				depth.convertTo(depth, CV_8UC1, 255.0 / 1000);
+				cv::imshow("Depth", depth);
+			}
+		}
+		if (rgb_enable) {
+			color = cv::Mat(cv::Size(640, 480), CV_8UC3,
+					(void*) dev->get_frame_data(rs::stream::color),
+					cv::Mat::AUTO_STEP);
+			if (rgb_write) {
+				std::stringstream ss;
+				ss << rgb_path << rgb_prefix << std::setw(5)
+						<< std::setfill('0') << i << name_suffix;
+				cv::imwrite(ss.str(), color);
+			}
+			if (rgb_plot) {
+				cv::imshow("RGB", color);
+			}
+		}
+		if (ir_enable) {
+			ir = cv::Mat(cv::Size(640, 480), CV_8UC1,
+					(void*) dev->get_frame_data(rs::stream::infrared),
+					cv::Mat::AUTO_STEP);
+			if (ir_write) {
+				std::stringstream ss;
+				ss << ir_path << ir_prefix << std::setw(5) << std::setfill('0')
+						<< i << name_suffix;
+				cv::imwrite(ss.str(), ir);
+			}
+			if (ir_plot) {
+				cv::imshow("IR", ir);
+			}
+		}
+		int key = cv::waitKey(200);
+		switch (key) {
+		case 27:
+			printf("Escape key pressed. Exiting program...\n");
+			return EXIT_SUCCESS;
+		case 32:
+			if (depth_enable) {
+				if (!depth_directory_created) {
+					system(("mkdir -p " + depth_path).c_str());
+					depth_directory_created = true;
+				}
+				std::stringstream ss;
+				ss << depth_path << depth_snap_prefix << std::setw(5)
+						<< std::setfill('0') << frames_written << name_suffix;
+				cv::imwrite(ss.str(), depth);
+			}
+			if (rgb_enable) {
+				if (!rgb_directory_created) {
+					system(("mkdir -p " + rgb_path).c_str());
+					rgb_directory_created = true;
+				}
+				std::stringstream ss;
+				ss << rgb_path << rgb_snap_prefix << std::setw(5)
+						<< std::setfill('0') << frames_written << name_suffix;
+				cv::imwrite(ss.str(), color);
+			}
+			if (ir_enable) {
+				if (!ir_directory_created) {
+					system(("mkdir -p " + ir_path).c_str());
+					ir_directory_created = true;
+				}
+				std::stringstream ss;
+				ss << ir_path << ir_snap_prefix << std::setw(5)
+						<< std::setfill('0') << frames_written << name_suffix;
+				cv::imwrite(ss.str(), ir);
+			}
+			frames_written++;
+			printf("Snapshot is taken.\n");
+		}
+	}
+	return EXIT_SUCCESS;
 
-	       // Wait for frame to load
-	       if(dev->is_streaming())
-	    	   dev->wait_for_frames();
-
-	       if(depth_enable){
-	    	   depth = cv::Mat(cv::Size(640, 480), CV_16UC1, (void*)dev->get_frame_data(rs::stream::depth), cv::Mat::AUTO_STEP);
-	    	   if(depth_write) {
-	               std::stringstream ss;
-	               ss << depth_path << depth_prefix << std::setw(5) << std::setfill('0') << i << name_suffix;
-	               cv::imwrite(ss.str(), depth);
-	    	   }
-	    	   if(depth_plot){
-		    	   // Convert 16bit to 8 bit
-		           depth.convertTo( depth, CV_8UC1, 255.0/1000 );
-		    	   cv::imshow("Depth", depth);
-	    	   }
-	       }
-	       if(rgb_enable){
-	    	   color = cv::Mat(cv::Size(640, 480), CV_8UC3, (void*)dev->get_frame_data(rs::stream::color), cv::Mat::AUTO_STEP);
-	    	   if(rgb_write) {
-	               std::stringstream ss;
-	               ss << rgb_path << rgb_prefix << std::setw(5) << std::setfill('0') << i << name_suffix;
-	               cv::imwrite(ss.str(), color);
-	    	   }
-	    	   if (rgb_plot){
-		    	   cv::imshow("RGB", color);
-	    	   }
-	       }
-	       if(ir_enable){
-	    	   ir = cv::Mat(cv::Size(640, 480), CV_8UC1, (void*)dev->get_frame_data(rs::stream::infrared), cv::Mat::AUTO_STEP);
-	    	   if(ir_write) {
-	               std::stringstream ss;
-	               ss << ir_path << ir_prefix << std::setw(5) << std::setfill('0') << i << name_suffix;
-	               cv::imwrite(ss.str(), ir);
-	    	   }
-	    	   if(ir_plot){
-		    	   cv::imshow("IR", ir);
-	    	   }
-	       }
-	       int key = cv::waitKey(200);
-	       switch(key) {
-	       	case 27:
-	       		printf("Escape key pressed. Exiting program...\n");
-	    	    return EXIT_SUCCESS;
-	       	case 32:
-                if(depth_enable) {
-                	if (!depth_directory_created){
-            			system(("mkdir -p " + depth_path).c_str());
-            			depth_directory_created = true;
-                	}
-                    std::stringstream ss;
-                    ss << depth_path << depth_snap_prefix << std::setw(5) << std::setfill('0') << frames_written << name_suffix;
- 	                cv::imwrite(ss.str(), depth);
-                }
-                if(rgb_enable) {
-                	if (!rgb_directory_created){
-                    	system(("mkdir -p " + rgb_path).c_str());
-                    	rgb_directory_created = true;
-                    }
-                    std::stringstream ss;
-                    ss << rgb_path << rgb_snap_prefix << std::setw(5) << std::setfill('0') << frames_written << name_suffix;
-                    cv::imwrite(ss.str(), color);
-                }
-                if(ir_enable) {
-                	if (!ir_directory_created){
-                    	system(("mkdir -p " + ir_path).c_str());
-                    	ir_directory_created = true;
-                    }
-                    std::stringstream ss;
-                    ss << ir_path << ir_snap_prefix << std::setw(5) << std::setfill('0') << frames_written << name_suffix;
-                    cv::imwrite(ss.str(), ir);
-                }
-                frames_written++;
-	       		printf("Snapshot is taken.\n");
-	       }
-	    }
-	    return EXIT_SUCCESS;
-
-} catch(const rs::error & e)
-{
-    // Method calls against librealsense objects may throw exceptions of type rs::error
-    printf("rs::error was thrown when calling %s(%s):\n", e.get_failed_function().c_str(), e.get_failed_args().c_str());
-    printf("    %s\n", e.what());
-    return EXIT_FAILURE;
+}
+catch (const rs::error & e) {
+	// Method calls against librealsense objects may throw exceptions of type rs::error
+	printf("rs::error was thrown when calling %s(%s):\n",
+			e.get_failed_function().c_str(), e.get_failed_args().c_str());
+	printf("    %s\n", e.what());
+	return EXIT_FAILURE;
 }
