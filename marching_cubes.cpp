@@ -107,6 +107,7 @@ int process_cube(Cell grid, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
         }
     }
     count+=1;
+    
     // Create the triangle
     int triangle_count = 0;
     pcl::PointXYZ triangle[3];
