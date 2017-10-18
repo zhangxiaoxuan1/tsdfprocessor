@@ -3,14 +3,11 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/visualization/cloud_viewer.h>
 
-using namespace pcl;
-using namespace std;
-
 int main (int argc, char * argv[])
 {
   std::string tsdfDirectory = ".";
   if (argc != 2) {
-		std::cout << "usage: " << argv[0] << " <TSDF binary file directory>. File should be named tsdf.bin. Default is current folder."
+		std::cout << "usage: ./tsdf <TSDF binary file directory>. File should be named tsdf.bin. Default is current folder."
 				<< std::endl;
 	} else {
 		tsdfDirectory = std::string(argv[1]);
@@ -41,15 +38,15 @@ int main (int argc, char * argv[])
           if(tsdf_value==0){
               count2++;
           }
-        }
           if(tsdf_value>0){
               count1++;
           }
+        }
       }
     }
   }
   std::cout << count1 << " " << count2 << " " << count3 << std::endl;
-  pcl::io::savePCDFileASCII(tsdfDirectory+"/tsdfcloud.pcd",cloud);
+  pcl::io::savePCDFile(tsdfDirectory+"/tsdfcloud.pcd",cloud);
   std::cout << "TSDF point cloud generated." << std::endl;
   pcl::visualization::CloudViewer viewer("Cloud Viewer");
   pcl::PointCloud<pcl::PointXYZ>::Ptr ptrCloud(&cloud);
