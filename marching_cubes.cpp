@@ -4,7 +4,7 @@
 #include "marching_cubes_table.h"
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/geometry/triangle_mesh.h>
-
+#include <pcl/io/ply_io.h>
 
 struct Triange {
     pcl::PointXYZ vert[3];
@@ -25,7 +25,7 @@ pcl::PointXYZ VertexInterp(float isolevel,pcl::PointXYZ p1,pcl::PointXYZ p2,floa
     pcl::PointXYZ p;
 
     // If jump is too big, return a point with x index -1 to indicate it's false
-    if (std::abs(valp1-valp2) > 0.8){
+    if (std::abs(valp1-valp2) > 0.95){
         p.x = -1;
         return(p);
     }
@@ -106,7 +106,6 @@ int process_cube(Cell grid, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
             return(0);
         }
     }
-    count+=1;
     
     // Create the triangle
     int triangle_count = 0;
@@ -209,7 +208,7 @@ int main (int argc, char * argv[])
                         gridcell.vert[l].y = position_arr[l][1];
                         gridcell.vert[l].z = position_arr[l][2];
                     }
-                    process_cube(gridcell,ptrCloud);
+                    count+=process_cube(gridcell,ptrCloud);
                     /**
                     if(i==4 && j==50 && k==52){
                         for(int m = 0; m < 8; m++) {
@@ -241,13 +240,33 @@ int main (int argc, char * argv[])
             }
         }
     }
-    std::cout << "A total of " << count << " cubes are processed." << std::endl;
-    std::cout << cloud.size() << std::endl;
-    pcl::visualization::CloudViewer viewer("Cloud Viewer");
-    viewer.showCloud(ptrCloud);
-    while (!viewer.wasStopped ())
-    {
+    std::cout << "A total of " << count << " triangles are processed." << std::endl;
 
+    // Process the points and convert to mesh
+    pcl::PolygonMesh  Mesh;
+    pcl::PolygonMesh::Ptr mesh_ptr(&Mesh);
+    pcl::toPCLPointCloud2 (cloud, mesh_ptr->cloud);
+    for (uint32_t i = 0; i < count; i++)
+    {
+        pcl::Vertices v;
+        v.vertices.push_back (i*3 + 0);
+        v.vertices.push_back (i*3 + 1);
+        v.vertices.push_back (i*3 + 2);
+        mesh_ptr->polygons.push_back(v);
+    }
+    std::cout << "Saving PLY file..." << std::endl;
+    pcl::io::savePLYFile ("TSDF_mesh.ply", Mesh);
+    std::cout << "PLY file saved." << std::endl;
+
+    // Visualize PLY file
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("Mesh Viewer"));
+    viewer->setBackgroundColor (0, 0, 0);
+    viewer->addPolygonMesh(Mesh,"meshes",0);
+    viewer->addCoordinateSystem (1.0);
+    viewer->initCameraParameters ();
+    while (!viewer->wasStopped ()){
+        viewer->spinOnce (100);
+        boost::this_thread::sleep (boost::posix_time::microseconds (100000));
     }
     return 0;
 }
