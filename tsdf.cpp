@@ -24,28 +24,24 @@ int main (int argc, char * argv[])
   std::cout.flush();
   float tsdf_value = 0;
   pcl::PointCloud<pcl::PointXYZ> cloud;
-  long count1 = 0;
-  long count2 = 0;
-  long count3 = 0;
+  long count = 0;
   for (int i = 0; i < 512; i++) {
     for (int j = 0; j < 512; j++) {
       for (int k = 0; k < 512; k++) {
         if(fread((void*)(&tsdf_value), sizeof(tsdf_value), 1, fp)) {
           if (tsdf_value < 0) {
             cloud.push_back(pcl::PointXYZ(i, j, k));
-            count3++;
+            count++;
           }
           if(tsdf_value==0){
-              count2++;
           }
           if(tsdf_value>0){
-              count1++;
           }
         }
       }
     }
   }
-  std::cout << count1 << " " << count2 << " " << count3 << std::endl;
+  std::cout << count << " points have been generated." << std::endl;
   pcl::io::savePCDFile(tsdfDirectory+"/tsdfcloud.pcd",cloud);
   std::cout << "TSDF point cloud generated." << std::endl;
   pcl::visualization::CloudViewer viewer("Cloud Viewer");

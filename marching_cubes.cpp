@@ -16,10 +16,7 @@ struct Cell {
 int count = 0;
 float isolevel = 0;
 
-/*
-   Linearly interpolate the position where an isosurface cuts
-   an edge between two vertices, each with their own scalar value
-*/
+// Calculate the intersection on an edge
 pcl::PointXYZ VertexInterp(float isolevel,pcl::PointXYZ p1,pcl::PointXYZ p2,float valp1,float valp2) {
     float mu;
     pcl::PointXYZ p;
@@ -58,7 +55,7 @@ int process_cube(Cell grid, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     if (grid.val[6] <= isolevel) cubeindex |= 64;
     if (grid.val[7] <= isolevel) cubeindex |= 128;
 
-    // Cube is entirely in/out of the surface or has value 0
+    // Cube is entirely in/out of the surface
     if (edgeTable[cubeindex] == 0){
         return(0);
     }
@@ -128,7 +125,7 @@ int main (int argc, char * argv[])
 {
     std::string tsdfDirectory = ".";
     if (argc != 2) {
-        std::cout << "usage: ./tsdf <TSDF binary file directory>. File should be named tsdf.bin. Default is current folder."
+        std::cout << "usage: ./marching_cubes <TSDF binary file directory>. File should be named tsdf.bin."
                   << std::endl;
     } else {
         tsdfDirectory = std::string(argv[1]);
@@ -185,7 +182,7 @@ int main (int argc, char * argv[])
             }
             for(int j=0;j < 512/size - 1;j++){
                 for(int k=0; k < 512/size - 1;k++){
-                    // Retrieve 8 vertices of the gridcell. Order is the default order from the paper.
+                    // Retrieve 8 vertices of the gridcell.
                     int index_arr[8][3] = { {0,j,k+1},
                                             {1,j,k+1},
                                             {1,j,k},
@@ -209,27 +206,6 @@ int main (int argc, char * argv[])
                         gridcell.vert[l].z = position_arr[l][2];
                     }
                     count+=process_cube(gridcell,ptrCloud);
-                    /**
-                    if(i==4 && j==50 && k==52){
-                        for(int m = 0; m < 8; m++) {
-                           printf("%f ", gridcell.val[m]);
-                        }
-                        printf("\n");
-                        for(int m = 0; m < 8; m++) {
-                            for(int n = 0; n < 3; n++) {
-                                printf("%d ", index_arr[m][n]);
-                            }
-                            printf("\n");
-                        }
-                        printf("\n");
-                        for(int m = 0; m < 8; m++) {
-                            for(int n = 0; n < 3; n++) {
-                                printf("%d ", position_arr[m][n]);
-                            }
-                            printf("\n");
-                        }
-                    }
-                    **/
                 }
             }
             // Move second layer to first layer
