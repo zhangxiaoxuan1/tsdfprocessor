@@ -6,9 +6,6 @@
 #include <pcl/geometry/triangle_mesh.h>
 #include <pcl/io/ply_io.h>
 
-struct Triange {
-    pcl::PointXYZ vert[3];
-} ;
 struct Cell {
     pcl::PointXYZ vert[8];
     float val[8];
@@ -116,7 +113,6 @@ int process_cube(Cell grid, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
         cloud->push_back(triangle[2]);
         triangle_count++;
     }
-
     return(triangle_count);
 
 }
@@ -140,7 +136,7 @@ int main (int argc, char * argv[])
     std::cout << "Implementing Marching Cubes Algorithm..." << std::endl;
     std::cout.flush();
 
-    // The scene is pretty small so recommended size is 1.
+    // The scene is pretty small so recommended grid size is 1.
     int size = 1;
     float tsdf_value = 0;
     pcl::PointCloud<pcl::PointXYZ> cloud;
