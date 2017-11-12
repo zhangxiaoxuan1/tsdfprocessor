@@ -12,7 +12,6 @@ struct Cell {
 } ;
 int count = 0;
 float isolevel = 0;
-
 // Calculate the intersection on an edge
 pcl::PointXYZ VertexInterp(float isolevel,pcl::PointXYZ p1,pcl::PointXYZ p2,float valp1,float valp2) {
     float mu;
@@ -108,6 +107,12 @@ int process_cube(Cell grid, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
         triangle[0] = vertlist[triTable[cubeindex][i  ]];
         triangle[1] = vertlist[triTable[cubeindex][i+1]];
         triangle[2] = vertlist[triTable[cubeindex][i+2]];
+        triangle[0].x = triangle[0].x*float(0.606);
+        triangle[1].x = triangle[1].x*float(0.606);
+        triangle[2].x = triangle[2].x*float(0.606);
+        triangle[0].y = triangle[0].y*float(0.505);
+        triangle[1].y = triangle[1].y*float(0.505);
+        triangle[2].y = triangle[2].y*float(0.505);
         cloud->push_back(triangle[0]);
         cloud->push_back(triangle[1]);
         cloud->push_back(triangle[2]);
@@ -136,8 +141,6 @@ int main (int argc, char * argv[])
     std::cout << "Implementing Marching Cubes Algorithm..." << std::endl;
     std::cout.flush();
 
-    // The scene is pretty small so recommended grid size is 1.
-    int size = 1;
     float tsdf_value = 0;
     pcl::PointCloud<pcl::PointXYZ> cloud;
     pcl::PointCloud<pcl::PointXYZ>::Ptr ptrCloud(&cloud);
@@ -148,55 +151,41 @@ int main (int argc, char * argv[])
     float val[8];
 
 
-    // Calculate gridcell as long as the first size layers are scanned to reduce memory usage
-    float points_arr[2][512/size][512/size];
+    std::vector<std::vector<std::vector<float>>> tsdfGrid;
+    tsdfGrid.resize(512);
     for (int i = 0; i < 512; i++) {
-        if(i == 0){
-            // Only if i=0: scan the first layer
-            for (int j = 0; j < 512; j++) {
-                for (int k = 0; k < 512; k++) {
-                    if(fread((void*)(&tsdf_value), sizeof(tsdf_value), 1, fp)) {
-                        if(j % size == 0 && k % size==0){
-                            points_arr[0][j/size][k/size] = tsdf_value;
-                        }
-                    }
+        tsdfGrid[i].resize(512);
+
+        for (int j = 0; j < 512; j++) {
+            tsdfGrid[i][j].resize(512);
+        }
+    }
+
+    for (int i = 0; i < 512; i++) {
+        for (int j = 0; j < 512; j++){
+            for (int k = 0; k < 512; k++){
+                if(fread((void*)(&tsdf_value), sizeof(tsdf_value), 1, fp)) {
+                    tsdfGrid[i][j][k] = tsdf_value;
                 }
             }
         }
-        else if(i%size==0){
-            std::cout << "Scanning layer " << i << "/" << 512-size <<"... \r";
+    }
+    for (int i = 0; i < 511; i++) {
+            std::cout << "Scanning layer " << i << "/" << 512 <<"... \r";
             std::cout.flush();
-            // scan the second layer
-            for (int j = 0; j < 512; j++) {
-                for (int k = 0; k < 512; k++) {
-                    if(fread((void*)(&tsdf_value), sizeof(tsdf_value), 1, fp)) {
-                        if( j%size == 0 && k%size==0){
-                            points_arr[1][j/size][k/size] = tsdf_value;
-                        }
-                    }
-                }
-            }
-            for(int j=0;j < 512/size - 1;j++){
-                for(int k=0; k < 512/size - 1;k++){
+            for(int j=0;j < 511;j++){
+                for(int k=0; k < 511;k++){
                     // Retrieve 8 vertices of the gridcell.
-                    int index_arr[8][3] = { {0,j,k+1},
-                                            {1,j,k+1},
-                                            {1,j,k},
-                                            {0,j,k},
-                                            {0,j+1,k+1},
-                                            {1,j+1,k+1},
-                                            {1,j+1,k},
-                                            {0,j+1,k} };
-                    int position_arr[8][3] = { {i-size,j*size,k*size+size},
-                                            {i,j*size,k*size+size},
-                                            {i,j*size,k*size},
-                                            {i-size,j*size,k*size},
-                                            {i-size,j*size+size,k*size+size},
-                                            {i,j*size+size,k*size+size},
-                                            {i,j*size+size,k*size},
-                                            {i-size,j*size+size,k*size} };
+                    int position_arr[8][3] = { {i,j,k+1},
+                                               {i+1,j,k+1},
+                                               {i+1,j,k},
+                                               {i,j,k},
+                                               {i,j+1,k+1},
+                                               {i+1,j+1,k+1},
+                                               {i+1,j+1,k},
+                                               {i,j+1,k} };
                     for(int l=0;l<8;l++){
-                        gridcell.val[l] = points_arr[index_arr[l][0]][index_arr[l][1]][index_arr[l][2]];
+                        gridcell.val[l] = tsdfGrid[position_arr[l][0]][position_arr[l][1]][position_arr[l][2]];
                         gridcell.vert[l].x = position_arr[l][0];
                         gridcell.vert[l].y = position_arr[l][1];
                         gridcell.vert[l].z = position_arr[l][2];
@@ -204,13 +193,6 @@ int main (int argc, char * argv[])
                     count+=process_cube(gridcell,ptrCloud);
                 }
             }
-            // Move second layer to first layer
-            for (int j = 0; j < 512/size; j++) {
-                for (int k = 0; k < 512/size; k++) {
-                    points_arr[0][j][k] = points_arr[1][j][k] ;
-                }
-            }
-        }
     }
     std::cout << "A total of " << count << " triangles are processed." << std::endl;
 

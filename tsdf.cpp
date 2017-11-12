@@ -30,7 +30,7 @@ int main (int argc, char * argv[])
       for (int k = 0; k < 512; k++) {
         if(fread((void*)(&tsdf_value), sizeof(tsdf_value), 1, fp)) {
           if (tsdf_value < 0) {
-            cloud.push_back(pcl::PointXYZ(i, j, k));
+            cloud.push_back(pcl::PointXYZ(i, -j, k));
             count++;
           }
           if(tsdf_value==0){
